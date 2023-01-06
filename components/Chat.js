@@ -2,6 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 export default class Chat extends React.Component {
+
+  componentDidMount() {
+    //Set name at the top to name entered on the Start screen
+    let name = this.props.route.params.name;
+    this.props.navigation.setOptions({title: name});
+  }
+
+
   render() {
     return (
       <View style={styles.container}>
