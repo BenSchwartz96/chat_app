@@ -54,14 +54,14 @@ export default class Start extends React.Component {
                 style={[styles.colors, { backgroundColor: bgColors.green },]}
                 onPress={() => this.setState({color: bgColors.green})}
               />
-
-
             </View>
-
 
             <TouchableOpacity
               style={styles.chat_button}
-              onPress={() => this.props.navigation.navigate('Chat')}>
+              onPress={() => this.props.navigation.navigate('Chat', {
+                name: this.state.name,
+                color: this.state.color,
+              })}>
               <Text style={styles.chat_button_text}>Start Chatting</Text>
             </ TouchableOpacity>
           </View>
