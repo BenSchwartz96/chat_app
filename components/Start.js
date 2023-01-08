@@ -66,6 +66,7 @@ export default class Start extends React.Component {
             </ TouchableOpacity>
           </View>
         </ImageBackground>
+        {Platform.OS === 'ios' ? <KeyboardAvoidingView behavior="padding" /> : null}
       </View>
     )
   }
