@@ -62,9 +62,10 @@ export default class Chat extends React.Component {
     this.props.navigation.setOptions({title: name});
 
     //Anonymous authentication
-    this.authUnsubscribe = firebase.auth().onAuthStateChanged((user) => {
+    this.authUnsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
-        firebase.auth().signInAnonymously();
+        results = await firebase.auth().signInAnonymously();
+        user = results.user;
       }
 
       //then update state
@@ -86,13 +87,11 @@ export default class Chat extends React.Component {
   }
 
 
-
   onSend(messages = []) {
     this.setState(previousState => ({
       messages: GiftedChat.append(previousState.messages, messages),
-    })), () => {
-      this.addMessage(this.state.messages[0]);
-    }
+    }))
+    this.addMessage(messages[0]);
   }
 
   //Save messages to database
