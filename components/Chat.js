@@ -44,7 +44,7 @@ export default class Chat extends React.Component {
       // get the QueryDocumentSnapshot's data
       let data = doc.data();
       messages.push({
-        _id: doc._id,
+        _id: data._id,
         text: data.text,
         createdAt: data.createdAt.toDate(),
         user: data.user,
