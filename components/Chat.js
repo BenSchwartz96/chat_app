@@ -1,7 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView } from 'react-native';
 
-import { GiftedChat, Bubble } from 'react-native-gifted-chat';
+import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
+
+import NetInfo from '@react-native-community/netinfo';
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebase = require('firebase');
 require('firebase/firestore');
@@ -55,8 +59,19 @@ export default class Chat extends React.Component {
   });
   }
 
-
   componentDidMount() {
+
+    this.getMessages();
+
+    NetInfo.fetch().then(connection => {
+      if (connection.isConnected) {
+        console.log('online');
+      } else {
+        console.log('offline');
+      }
+    });
+
+
     //Set name at the top to name entered on the Start screen
     let name = this.props.route.params.name;
     this.props.navigation.setOptions({title: name});
@@ -87,14 +102,55 @@ export default class Chat extends React.Component {
   }
 
 
+
+
+    // Previous version of onsend. addmessage here instead of savemessage
+  // onSend(messages = []) {
+  //   this.setState(previousState => ({
+  //     messages: GiftedChat.append(previousState.messages, messages),
+  //   }))
+  //   this.addMessage(messages[0]);
+  // }
+
+
+
+
   onSend(messages = []) {
-    this.setState(previousState => ({
-      messages: GiftedChat.append(previousState.messages, messages),
-    }))
-    this.addMessage(messages[0]);
+  this.setState(previousState => ({
+    messages: GiftedChat.append(previousState.messages, messages),
+    }), () => {
+      this.saveMessages();
+    });
   }
 
-  //Save messages to database
+
+
+  //this gets messages from async storage
+  async getMessages() {
+    let messages = '';
+    try {
+      messages = await AsyncStorage.getItem('messages') || [];
+      this.setState({
+        messages: JSON.parse(messages)
+      });
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+
+
+  async saveMessages() {
+    try {
+      await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
+
+
+  //Save messages to database     i guess this stuff isnt useful anymore?
   addMessage = (message) => {
 
     this.referenceChatMessages.add({
@@ -105,6 +161,23 @@ export default class Chat extends React.Component {
         user: message.user,
     });
   }
+
+
+
+    //not used this yet either
+  async deleteMessages() {
+    try {
+      await AsyncStorage.removeItem('messages');
+      this.setState({
+        messages: []
+      })
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
+
+
   
   renderBubble(props) {
     return (
@@ -119,6 +192,17 @@ export default class Chat extends React.Component {
     )
   }
 
+
+  renderInputToolbar(props) {
+    if (this.state.isConnected == false) {
+    } else {
+      return(
+        <InputToolbar
+        {...props}
+        />
+      );
+    }
+  }
 
   render() {
         

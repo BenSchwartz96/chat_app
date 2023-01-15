@@ -1,6 +1,8 @@
 // import React
 import React, { Component } from 'react';
 
+import { LogBox } from 'react-native';
+
 // import react native gesture handler
 import 'react-native-gesture-handler';
 
@@ -17,6 +19,9 @@ import Chat from './components/Chat';
 
 // Create the navigator
 const Stack = createStackNavigator();
+
+//this prevents the 'asyncstorage' bug
+LogBox.ignoreLogs(["AsyncStorage has been extracted from"]);
 
 export default class App extends Component {
   render() {
