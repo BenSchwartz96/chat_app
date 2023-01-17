@@ -20,6 +20,7 @@ export default class Chat extends React.Component {
     this.state = {
       messages: [],
       uid: 0,
+      isConnected: null,
     }
     
     
@@ -104,21 +105,11 @@ export default class Chat extends React.Component {
 
 
 
-    // Previous version of onsend. addmessage here instead of savemessage
-  // onSend(messages = []) {
-  //   this.setState(previousState => ({
-  //     messages: GiftedChat.append(previousState.messages, messages),
-  //   }))
-  //   this.addMessage(messages[0]);
-  // }
-
-
-
-
   onSend(messages = []) {
   this.setState(previousState => ({
     messages: GiftedChat.append(previousState.messages, messages),
     }), () => {
+      this.addMessage();
       this.saveMessages();
     });
   }
@@ -139,18 +130,7 @@ export default class Chat extends React.Component {
   };
 
 
-
-  async saveMessages() {
-    try {
-      await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
-    } catch (error) {
-      console.log(error.message);
-    }
-  }
-
-
-
-  //Save messages to database     i guess this stuff isnt useful anymore?
+  //Add messages to database
   addMessage = (message) => {
 
     this.referenceChatMessages.add({
@@ -161,6 +141,18 @@ export default class Chat extends React.Component {
         user: message.user,
     });
   }
+
+  //Save messages to localstorage
+  async saveMessages() {
+    try {
+      await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
+
+
 
 
 
@@ -213,6 +205,7 @@ export default class Chat extends React.Component {
       <View style={[styles.container, { backgroundColor: color }]}>
         <GiftedChat
           renderBubble={this.renderBubble.bind(this)}
+          renderInputToolbar={this.renderInputToolbar.bind(this)}
           messages={this.state.messages}
           onSend={messages => this.onSend(messages)}
           user={{
