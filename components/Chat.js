@@ -7,9 +7,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 //importing updated firebase
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, collection, onSnapshot, query, orderBy, addDoc } from "firebase/firestore";
+import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, disableNetwork, enableNetwork } from "firebase/firestore";
 import {  getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-
 
 
 
@@ -27,8 +26,7 @@ export default class Chat extends React.Component {
         avatar: "",
       },
     }
-    
-    
+
     const firebaseConfig = {
       apiKey: "AIzaSyBAtyfLF2fm2dqv2kXZukbp_YWI2DLjZqI",
       authDomain: "test-30874.firebaseapp.com",
@@ -36,16 +34,13 @@ export default class Chat extends React.Component {
       storageBucket: "test-30874.appspot.com",
       messagingSenderId: "13099037868",
     }
-    
-    if (!getApps().length) {
-      this.app = initializeApp(firebaseConfig);
-      this.db = getFirestore(this.app);
-      this.auth = getAuth();
-    }
+
+    this.app = initializeApp(firebaseConfig);
+    this.db = getFirestore(this.app);
+    this.auth = getAuth();
 
     // References messages collection
-    this.referenceChatMessages  = collection(this.db, "messages");
-
+    this.referenceChatMessages = collection(this.db, "messages");
   }
 
 
@@ -64,71 +59,69 @@ export default class Chat extends React.Component {
     });
     this.setState({
       messages,
-  });
-  }
-
-  componentDidMount() {
-
-    this.getMessages();
-
-    NetInfo.fetch().then(connection => {
-      if (connection.isConnected) {
-        console.log('online');
-        this.setState({ isConnected: true });
-      } else {
-        console.log('offline');
-        this.setState({ isConnected: false });
-      }
-    });
-
-
-    //Set name at the top to name entered on the Start screen
-    let name = this.props.route.params.name;
-    this.props.navigation.setOptions({title: name});
-
-
-    //Anonymous authentication
-    this.authUnsubscribe = onAuthStateChanged(this.auth, async (user) => {
-      if (!user) {
-        results = await signInAnonymously(this.auth);
-        user = results.user;
-      }
-
-      //then update state
-      this.setState({
-        uid: user.uid,
-        messages: [],
-      });
-
-      const q = query(this.referenceChatMessages, orderBy("createdAt", "desc"));
-      this.unsubscribe = onSnapshot(q, this.onCollectionUpdate);
-    });
-
-  }
-
-
-  componentWillUnmount() {
-    if (this.isConnected) {
-      if (this.unsubscribe) this.unsubscribe();
-      if (this.authUnsubscribe) this.authUnsubscribe();
-    }
-  }
-
-
-
-
-  onSend(messages = []) {
-  this.setState(previousState => ({
-    messages: GiftedChat.append(previousState.messages, messages),
-    }), () => {
-      this.addMessage(messages[0]);
+    }, () => {
       this.saveMessages();
     });
   }
 
+  componentDidMount() {
+    //Set name at the top to name entered on the Start screen
+    let name = this.props.route.params.name;
+    this.props.navigation.setOptions({ title: name });
+
+    this.unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      this.setState({ isConnected: state.isConnected })
+    });
+  }
 
 
-  //this gets messages from async storage
+  // Will run whenever state updates and check for being online
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.isConnected !== this.state.isConnected) {
+      if (this.state.isConnected === true) {
+        enableNetwork(this.db);
+        //Anonymous authentication
+        if (this.authUnsubscribe) this.authUnsubscribe();
+        this.authUnsubscribe = onAuthStateChanged(this.auth, async (user) => {
+          if (!user) {
+            results = await signInAnonymously(this.auth);
+            user = results.user;
+          }
+
+          this.setState({
+            uid: user.uid,
+          });
+
+          const q = query(this.referenceChatMessages, orderBy("createdAt", "desc"));
+          if (this.unsubscribe) this.unsubscribe();
+          this.unsubscribe = onSnapshot(q, this.onCollectionUpdate);
+        });
+      } else {
+        disableNetwork(this.db);
+        this.getMessages();
+      }
+    }
+  }
+
+
+  componentWillUnmount() {
+      if (this.unsubscribe) this.unsubscribe();
+      if (this.authUnsubscribe) this.authUnsubscribe();
+      if (this.unsubscribeNetInfo) this.unsubscribeNetInfo();
+  }
+
+
+  // Adds most recently sent message to the messages array and to giftedchat
+  onSend(messages = []) {
+    this.setState(previousState => ({
+      messages: GiftedChat.append(previousState.messages, messages),
+    }), () => {
+      this.addMessage(messages[0]);
+    });
+  }
+
+
+  //Gets messages from local/async storage
   async getMessages() {
     let messages = '';
     try {
@@ -154,7 +147,8 @@ export default class Chat extends React.Component {
     });
   }
 
-  //Save messages to localstorage
+
+  //Save messages to local/async storage
   async saveMessages() {
     try {
       await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
@@ -163,12 +157,7 @@ export default class Chat extends React.Component {
     }
   }
 
-
-
-
-
-
-    //not used this yet either
+  //Delete messages in database (when I need to, not used this yet)
   async deleteMessages() {
     try {
       await AsyncStorage.removeItem('messages');
@@ -180,9 +169,8 @@ export default class Chat extends React.Component {
     }
   }
 
-
-
   
+  // Makes sender chat bubble blue
   renderBubble(props) {
     return (
       <Bubble
@@ -197,6 +185,7 @@ export default class Chat extends React.Component {
   }
 
 
+  // Hides option to send a message if offline
   renderInputToolbar(props) {
     if (this.state.isConnected == false) {
     } else {
@@ -235,6 +224,7 @@ export default class Chat extends React.Component {
 
 //
 }
+
 
 
 
