@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView } from 'react-native';
 import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -13,12 +13,11 @@ import CustomActions from './CustomActions';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 
-//importing updated firebase
-import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, disableNetwork, enableNetwork } from "firebase/firestore";
-import {  getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { getStorage } from "firebase/storage";
+//importing firebase
+import { collection, onSnapshot, query, orderBy, addDoc, disableNetwork, enableNetwork } from "firebase/firestore";
+import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
+//Importing firebase config info from config file
 import { db, auth } from "../config/firebase";
 
 export default class Chat extends React.Component {
