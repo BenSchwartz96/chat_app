@@ -4,13 +4,22 @@ import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Send maps as messages
+import MapView from 'react-native-maps';
+
+// CustomActions option to select image/location sharing.
+import CustomActions from './CustomActions';
+
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
+
 
 //importing updated firebase
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, disableNetwork, enableNetwork } from "firebase/firestore";
 import {  getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
-
+import { db, auth } from "../config/firebase";
 
 export default class Chat extends React.Component {
 
@@ -25,22 +34,11 @@ export default class Chat extends React.Component {
         name: "",
         avatar: "",
       },
+      image: null,
+      location: null
     }
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBAtyfLF2fm2dqv2kXZukbp_YWI2DLjZqI",
-      authDomain: "test-30874.firebaseapp.com",
-      projectId: "test-30874",
-      storageBucket: "test-30874.appspot.com",
-      messagingSenderId: "13099037868",
-    }
-
-    this.app = initializeApp(firebaseConfig);
-    this.db = getFirestore(this.app);
-    this.auth = getAuth();
-
-    // References messages collection
-    this.referenceChatMessages = collection(this.db, "messages");
+    this.referenceChatMessages = collection(db, "messages");
   }
 
 
@@ -55,6 +53,8 @@ export default class Chat extends React.Component {
         text: data.text,
         createdAt: data.createdAt.toDate(),
         user: data.user,
+        image: data.image || null,
+        location: data.location || null,
       });
     });
     this.setState({
@@ -79,12 +79,12 @@ export default class Chat extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (prevState.isConnected !== this.state.isConnected) {
       if (this.state.isConnected === true) {
-        enableNetwork(this.db);
+        enableNetwork(db);
         //Anonymous authentication
         if (this.authUnsubscribe) this.authUnsubscribe();
-        this.authUnsubscribe = onAuthStateChanged(this.auth, async (user) => {
+        this.authUnsubscribe = onAuthStateChanged(auth, async (user) => {
           if (!user) {
-            results = await signInAnonymously(this.auth);
+            results = await signInAnonymously(auth);
             user = results.user;
           }
 
@@ -97,7 +97,7 @@ export default class Chat extends React.Component {
           this.unsubscribe = onSnapshot(q, this.onCollectionUpdate);
         });
       } else {
-        disableNetwork(this.db);
+        disableNetwork(db);
         this.getMessages();
       }
     }
@@ -141,9 +141,12 @@ export default class Chat extends React.Component {
     addDoc(this.referenceChatMessages, {
       uid: this.state.uid,
       _id: message._id,
-      text: message.text,
+      text: message.text || "",
       createdAt: message.createdAt,
       user: message.user,
+      // these two below are taken from ZH. idk what the || stuff is
+      image: message.image || "",
+      location: message.location || null,
     });
   }
 
@@ -197,28 +200,60 @@ export default class Chat extends React.Component {
     }
   }
 
+  // Render symbol and actionbar allowing to take/send pictures or share location
+  renderCustomActions = (props) => {
+    return <CustomActions {...props} />;
+  };
+
+  // Render a mapview if a message contains location data
+  renderCustomView (props) {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+          <MapView
+            style={{width: 150,
+              height: 100,
+              borderRadius: 13,
+              margin: 3}}
+            region={{
+              latitude: currentMessage.location.latitude,
+              longitude: currentMessage.location.longitude,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}
+          />
+      );
+    }
+    return null;
+  }
+
+
+
   render() {
         
     // Set background color
     let { color, name} = this.props.route.params;
 
     return (
-      <View style={[styles.container, { backgroundColor: color }]}>
-        <GiftedChat
-          renderBubble={this.renderBubble.bind(this)}
-          renderInputToolbar={this.renderInputToolbar.bind(this)}
-          messages={this.state.messages}
-          onSend={messages => this.onSend(messages)}
-          user={{
-            _id: this.state.uid,
-            name: name,
+      <ActionSheetProvider>
+        <View style={[styles.container, { backgroundColor: color }]}>
+          <GiftedChat
+            renderBubble={this.renderBubble.bind(this)}
+            renderInputToolbar={this.renderInputToolbar.bind(this)}
+            renderCustomView={this.renderCustomView}
+            renderActions={this.renderCustomActions}
+            messages={this.state.messages}
+            onSend={messages => this.onSend(messages)}
+            user={{
+              _id: this.state.uid,
+              name: name,
+            }}
+          />
 
-          }}
-        />
 
-
-        { Platform.OS === 'android' ? <KeyboardAvoidingView behavior="height" /> : null}
-      </View>
+          { Platform.OS === 'android' ? <KeyboardAvoidingView behavior="height" /> : null}
+        </View>
+      </ActionSheetProvider>
     )
   }
 
