@@ -11,8 +11,6 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 
-// For creating random strings to differentiate files with same name uploaded to storage
-// import { v4 } from "uuid";
 
 export default function CustomActions(props) {
   const { showActionSheetWithOptions } = useActionSheet();
